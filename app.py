@@ -7,6 +7,11 @@ app = Flask(__name__)
 client = MongoClient('mongodb+srv://test:ksd3480@cluster0.sk1w9.mongodb.net/myFirstDatabase?retryWrites=true&w=majority')
 db = client.dbpjt
 
+# 홈
+@app.route("/")
+def home():
+    return render_template('index.html')
+
 # 후보 상세정보 보기
 @app.route("/detail", methods=["GET"])
 def detail():
@@ -94,7 +99,7 @@ def recomment_update():
     target = request.form['target']
     db.comment.update_one({'recomments._id': ObjectId(objid)},
                           {'$set':
-                               {'recomments.recomment':recomment}
+                               {'recomments.$.recomment':recomment}
                           })
     return jsonify({'msg': '댓글이 수정되었습니다!'})
 
