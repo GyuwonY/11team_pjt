@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content="" />
+        <meta name="author" content="" />
+        <title>당신의 후보는?</title>
+        <!-- Favicon-->
+        <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='assets/favicon.ico') }}" />
+        <!-- Bootstrap icons-->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
+        <!-- Core theme CSS (includes Bootstrap)-->
+        <link href="{{ url_for('static', filename='css/detail_styles.css') }}" rel="stylesheet" />
+        <style>
+            .center{
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+            .comment-list, .comment-input{
+                width: 65%;
+                height: 100%;
+                margin: 0;
+            }
+
+            .title{
+                border: 1px solid lightgray;
+                text-align: center;
+                width: 6%;
+            }
+
+            .comment-btn{
+                border: 1px solid lightgray;
+                text-align: center;
+                width: 5%;
+            }
+
+            .comment{
+                border-top: 1px solid lightgray;
+                border-bottom: 1px solid lightgray;
+            }
+
+            #comment{
+                width: 100%;
+                resize: none;
+            }
+
+            .mp{
+                margin: 0;
+                padding: 0;
+            }
+            .btns{
+                width: 16%;
+                border-top: 1px solid lightgray;
+                border-right: 1px solid lightgray;
+                border-bottom: 1px solid lightgray;
+            }
+        </style>
+
+        <!-- Bootstrap core JS-->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- Core theme JS-->
+        <script src="{{ url_for('static', filename='js/detail_styles.js') }}"></script>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script>
+            // 댓글 등록 function
+            function comwrite(){
+                let comment = $('#comment').val().replace(/\n/g, "<br>")
+                if(comment.length==0){
+                    alert("댓글을 입력해주세요.")
+                }else{
+                    $.ajax({
+                        type: "POST",
+                        url: "/comment/insert",
+                        data: {
+                            id: 'id',
+                            comment: comment
+                        },
+                        success: function (response) {
+                            let msg = response['msg']
+
+                            alert(msg)
+                            location.reload()
+                        }
+                    })
+                }
+            }
+
+            // 댓글 삭제 function
+            function comdelete(objid){
+                if(confirm('댓글을 삭제하시겠습니까?')){
+                    $.ajax({
+                        type: "DELETE",
+                        url: "/comment/delete",
+                        data: {
+                            objid: objid,
+                        },
+                        success: function (response) {
+                            let msg = response['msg']
+                            alert(msg)
+                            location.reload();
+                        }
+                    })
+                }
+            }
+
+            // 댓글 수정 form function
+            function updateform(objid) {
+                cancelupdate()
+                let comment = $('#'+objid).text()
+                let temp_html = `<tr id="updateform">
+                                    <td></td>
+                                    <td colspan="2">
+                                        <textarea rows="3" cols="120" id="updatecomment">${comment}</textarea>
+                                        <a class="btn btn-secondary float-end updatebtns" onclick=cancelupdate()>취소</a>
+                                        <a class="btn btn-secondary float-end updatebtns" onclick=comupdate("${objid}")>수정<br>완료</a>
+                                    </td>
+                                </tr>`
+                $('#'+objid).parent().parent().after(temp_html)
+
+            }
+
+            // 댓글 수정 function
+            function comupdate(objid){
+                let updatecomment = $('#updatecomment').val().replace(/\n/g, "<br>")
+                if(updatecomment.length==0){
+                    alert("수정할 댓글을 입력해주세요.")
+                }else {
+                    $.ajax({
+                        type: "PUT",
+                        url: "/comment/update",
+                        data: {
+                            id: 'id',
+                            objid: objid,
+                            comment: updatecomment
+                        },
+                        success: function (response) {
+                            alert(response['msg'])
+                            location.reload()
+                        }
+                    })
+                }
+            }
+
+            // 수정 및 답글작성 취소 function
+            function cancelupdate(){
+                $('#updateform').remove()
+                $('#recomform').remove()
+            }
+
+            // 답글 form function
+            function recomform(objid){
+                cancelupdate()
+                let temp_html = `<tr id="recomform">
+                                    <td></td>
+                                    <td colspan="2">
+                                        <textarea rows="3" cols="120" id="recomment" placeholder="답글을 입력하세요."></textarea>
+                                        <a class="btn btn-secondary float-end updatebtns" onclick=cancelupdate()>취소</a>
+                                        <a class="btn btn-secondary float-end updatebtns" onclick=recomwrite("${objid}")>작성<br>완료</a>
+                                    </td>
+                                </tr>`
+                $('#' + objid).parent().parent().after(temp_html)
+            }
+
+            // 답글 등록 function
+            function recomwrite(objid){
+                let recomment = $('#recomment').val().replace(/\n/g, "<br>")
+                if($('#recomment').length==0){
+                    alert("답글을 입력해주세요.")
+                }else {
+                    $.ajax({
+                        type: "POST",
+                        url: "/recomment/insert",
+                        data: {
+                            id: 'id',
+                            objid: objid,
+                            recomment: recomment
+                        },
+                        success: function (response) {
+                            alert(response['msg'])
+                            location.reload()
+                        }
+                    })
+                }
+            }
+
+            // 답글 삭제 function
+            function recomdelete(objid, target) {
+                if (confirm('답글을 삭제하시겠습니까?')) {
+                    $.ajax({
+                        type: "DELETE",
+                        url: "/recomment/delete",
+                        data: {
+                            objid: objid,
+                            target: target
+                        },
+                        success: function (response) {
+                            let msg = response['msg']
+                            alert(msg)
+                            location.reload();
+                        }
+                    })
+                }
+            }
+
+            // 답글 수정 form function
+            function recomupdateform(objid, target) {
+                cancelupdate()
+                let comment = $('#'+objid).text()
+                let temp_html = `<tr id="updateform">
+                                    <td></td>
+                                    <td colspan="2">
+                                        <textarea rows="3" cols="120" id="recomupdatecomment">${comment}</textarea>
+                                        <a class="btn btn-secondary float-end updatebtns" onclick=cancelupdate()>취소</a>
+                                        <a class="btn btn-secondary float-end updatebtns" onclick=recomupdate("${objid}","${target}")>수정<br>완료</a>
+                                    </td>
+                                </tr>`
+                $('#'+objid).parent().parent().after(temp_html)
+
+            }
+
+            // 답글 수정 function
+            function recomupdate(objid, target){
+                let updatecomment = $('#recomupdatecomment').val().replace(/\n/g, "<br>")
+                if(updatecomment.length==0){
+                    alert("수정할 댓글을 입력해주세요.")
+                }else {
+                    $.ajax({
+                        type: "PUT",
+                        url: "/recomment/update",
+                        data: {
+                            id: 'id',
+                            objid: objid,
+                            target: target,
+                            comment: updatecomment
+                        },
+                        success: function (response) {
+                            alert(response['msg'])
+                            location.reload()
+                        }
+                    })
+                }
+            }
+
+        </script>
+    </head>
+    <body>
+        <!-- Navigation-->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container px-4 px-lg-5">
+                <a class="navbar-brand" href="/">당신의 후보는?</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
+                        <li class="nav-item"><a class="nav-link active" aria-current="page" href="/">Home</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#!">About</a></li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Shop</a>
+                            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                <li><a class="dropdown-item" href="#!">All Products</a></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li><a class="dropdown-item" href="#!">Popular Items</a></li>
+                                <li><a class="dropdown-item" href="#!">New Arrivals</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        <!-- Product section-->
+        <section class="py-5">
+            <div class="container px-4 px-lg-5 my-5">
+                <div class="row gx-4 gx-lg-5 align-items-center">
+                    <div class="col-md-6"><img class="card-img-top mb-5 mb-md-0" src="https://dummyimage.com/600x700/dee2e6/6c757d.jpg" alt="..." /></div>
+                    <div class="col-md-6">
+                        <div class="small mb-1">당당당</div>
+                        <h1 class="display-5 fw-bolder">이재명</h1>
+                        <div class="fs-5 mb-5">
+                            <span>$40.00</span>
+                        </div>
+                        <p class="lead">공약</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- Related items section-->
+        <section class="py-5 bg-light center">
+            <table class="comment-input mp">
+                <tr class="mp">
+                    <td class="title mp"><strong>댓글</strong></td>
+                    <td class="comment mp"><textarea rows="3" cols="90" id="comment" placeholder="댓글을 입력하세요."></textarea></td>
+                    <td class="comment-btn mp"><a class="btn btn-secondary" onclick="comwrite()">댓글<br>작성</a></td>
+                </tr>
+            </table>
+            <table class="comment-list mp">
+                {% for comment in comment_list %}
+                    <tr class="mp">
+                        <td class="title mp"><strong>{{ comment['id']}}</strong></td>
+                        <td class="comment mp"><div id="{{comment['_id']}}">{{ comment['comment']|safe}}</div></td>
+                        <td class="btns">
+                            <a class="btn btn-secondary float-end">🚨신고</a>
+                            <a class="btn btn-secondary float-end" onclick=comdelete("{{ comment['_id']}}")>삭제</a>
+                            <a class="btn btn-secondary float-end" onclick=updateform("{{ comment['_id']}}")>수정</a>
+                        </td>
+                        <td class="comment-btn mp"><a class="btn btn-secondary" onclick=recomform("{{ comment['_id']}}")>답글<br>작성</a></td>
+                    </tr>
+                    {% if comment['recomments'] != null %}
+                        {% for recomment in comment['recomments'] %}
+                            <tr class="mp">
+                                <td class="title mp"><strong>{{ recomment['id']}}</strong></td>
+                                <td class="comment mp"><strong>RE:▶</strong><div id="{{recomment['_id']}}">{{ recomment['recomment']|safe}}</div></td>
+                                <td class="btns">
+                                    <a class="btn btn-secondary float-end">🚨신고</a>
+                                    <a class="btn btn-secondary float-end" onclick=recomdelete("{{ recomment['_id']}}","{{recomment['target']}}")>삭제</a>
+                                    <a class="btn btn-secondary float-end" onclick=recomupdateform("{{ recomment['_id']}}","{{recomment['target']}}")>수정</a>
+                                </td>
+                                <td class="comment-btn mp"></td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                {% endfor %}
+            </table>
+        </section>
+        <!-- Footer-->
+        <footer class="py-5 bg-dark">
+            <div class="container"><p class="m-0 text-center text-white">Copyright &copy; Your Website 2021</p></div>
+        </footer>
+    </body>
+</html>
