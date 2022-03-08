@@ -7,6 +7,9 @@ import jwt
 import hashlib
 from werkzeug.utils import secure_filename
 
+
+
+SECRET_KEY = 'SPARTA'
 app = Flask(__name__)
 client = MongoClient('mongodb+srv://test:ksd3480@cluster0.sk1w9.mongodb.net/myFirstDatabase?retryWrites=true&w=majority')
 db = client.dbpjt
@@ -102,6 +105,11 @@ def recomment_update():
                           })
     return jsonify({'msg': '댓글이 수정되었습니다!'})
 
+
+
+
+
+
 @app.route('/')
 def home():
     token_receive = request.cookies.get('mytoken')
@@ -187,3 +195,6 @@ def check_dup():
 
 if __name__ == '__main__':
     app.run('0.0.0.0', port=5000, debug=True)
+
+
+
