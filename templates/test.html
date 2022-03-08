@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>okay</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script>
+        $.ajax({
+                type: "get",
+                url: "/http://apis.data.go.kr/9760000/ElecPrmsInfoInqireService",
+                data: {
+                },
+                success: function (response) {
+                    alert(response["msg"])
+                }
+            });
+    </script>
+</head>
+<body>
+
+</body>
+</html>
