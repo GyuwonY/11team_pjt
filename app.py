@@ -7,14 +7,15 @@ import jwt
 import hashlib
 from werkzeug.utils import secure_filename
 
-app = Flask(__name__)
-client = MongoClient('mongodb+srv://test:ksd3480@cluster0.sk1w9.mongodb.net/myFirstDatabase?retryWrites=true&w=majority')
+SECRET_KEY = 'SPARTA'
+client = MongoClient('mongodb+srv://test01:test01@cluster0.sk1w9.mongodb.net/Cluster0?retryWrites=true&w=majority',tlsCAFile=certifi.where())
+# client = MongoClient('localhost',27017)
 db = client.dbpjt
 
 # 홈
-@app.route("/")
-def home():
-    return render_template('index.html')
+# @app.route("/")
+# def home():
+#     return render_template('index.html')
 
 # 후보 상세정보 보기
 @app.route("/detail", methods=["GET"])
@@ -112,7 +113,6 @@ def home():
     token_receive = request.cookies.get('mytoken')
     try:
         payload = jwt.decode(token_receive, SECRET_KEY, algorithms=['HS256'])
-
         return render_template('index.html')
     except jwt.ExpiredSignatureError:
         return redirect(url_for("login", msg="로그인 시간이 만료되었습니다."))
@@ -126,18 +126,7 @@ def login():
     return render_template('login.html', msg=msg)
 
 
-@app.route('/user/<username>')
-def user(username):
-    # 각 사용자의 프로필과 글을 모아볼 수 있는 공간
-    token_receive = request.cookies.get('mytoken')
-    try:
-        payload = jwt.decode(token_receive, SECRET_KEY, algorithms=['HS256'])
-        status = (username == payload["id"])  # 내 프로필이면 True, 다른 사람 프로필 페이지면 False
 
-        user_info = db.userss.find_one({"username": username}, {"_id": False})
-        return render_template('user.html', user_info=user_info, status=status)
-    except (jwt.ExpiredSignatureError, jwt.exceptions.DecodeError):
-        return redirect(url_for("home"))
 
 
 @app.route('/sign_in', methods=['POST'])
