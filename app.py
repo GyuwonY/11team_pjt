@@ -1,34 +1,80 @@
-import certifi as certifi
 from flask import *
 from pymongo import MongoClient
 from bson.objectid import ObjectId
-import datetime, timedelta
+from datetime import datetime, timedelta
 import jwt
 import hashlib
-from werkzeug.utils import secure_filename
+import requests
+import xmltodict, json
 
 app = Flask(__name__)
 client = MongoClient('mongodb+srv://test:ksd3480@cluster0.sk1w9.mongodb.net/myFirstDatabase?retryWrites=true&w=majority')
 db = client.dbpjt
 
+SECRET_KEY = 'SPARTA'
+
 # 홈
 @app.route("/")
 def home():
-    return render_template('index.html')
+    candidates = list(db.candidate.find({}, {'_id': False}))
+    # 로그인 상태인 경우 회원 정보와 함께 response
+    if request.cookies.get('token') is not None:
+        try:
+            token = request.cookies.get('token')
+            member = jwt.decode(token, SECRET_KEY, algorithms='HS256')
+            return render_template('index.html', candidates=candidates, member=member)
+        except jwt.ExpiredSignatureError:
+            resp = make_response(redirect(url_for('home')))
+            resp.delete_cookie('token')
+            return resp
+        except jwt.exceptions.DecodeError:
+            resp = make_response(redirect(url_for('home')))
+            resp.delete_cookie('token')
+            return resp
+    return render_template('index.html', candidates=candidates)
+
 
 # 후보 상세정보 보기
 @app.route("/detail", methods=["GET"])
 def detail():
-    # request.form['target']
-    target = '이재명'
+    target = request.args.get('name')
+    id = request.args.get('id')
     comment_list = list(db.comment.find({'target': target}))
-    return render_template('detail.html', comment_list=comment_list)
+
+    url = 'http://apis.data.go.kr/9760000/ElecPrmsInfoInqireService/getCnddtElecPrmsInfoInqire'
+    params = {'serviceKey': 'TikFg2eahcB/ceBXx88hqH3IRDFb6GEd/uli4geQ0NssuNajoYP4qOkj0kFB6fpBBK/uYammLUwzg9STKIRqbw==',
+              'pageNo': '1', 'numOfRows': '100', 'sgId': '20220309', 'sgTypecode': '1', 'cnddtId': id}
+    response = requests.get(url, params=params)
+
+    # api response가 xml이기 때문에 dict 형태로 바꿔줌
+    obj = xmltodict.parse(response.content)
+    # 한글이 ascii code 처리되어 False
+    api = json.dumps(obj, ensure_ascii=False)
+    # json으로 load
+    promise = json.loads(api)['response']['body']['items']['item']
+    prmscnt = []
+    for i in range(1, int(promise['prmsCnt'])+1):
+        prmscnt.append(str(i))
+    if request.cookies.get('token') is not None:
+        try:
+            token = request.cookies.get('token')
+            member = jwt.decode(token, SECRET_KEY, algorithms='HS256')
+            return render_template('detail.html', comment_list=comment_list, promise=promise, prmscnt=prmscnt, member=member)
+        except jwt.ExpiredSignatureError:
+            resp = make_response(redirect(url_for('home')))
+            resp.delete_cookie('token')
+            return resp
+        except jwt.exceptions.DecodeError:
+            resp = make_response(redirect(url_for('home')))
+            resp.delete_cookie('token')
+
+    return render_template('detail.html', comment_list=comment_list, promise=promise, prmscnt=prmscnt)
 
 
 # 댓글 생성
 @app.route("/comment/insert", methods=["POST"])
 def comment_insert():
-    now = datetime.datetime.now()
+    now = datetime.now()
     id = request.form['id']
     comment = request.form['comment']
     doc = {
@@ -60,7 +106,7 @@ def comment_delete():
 # 답글 생성
 @app.route("/recomment/insert", methods=["POST"])
 def recomment():
-    now = datetime.datetime.now()
+    now = datetime.now()
     id = request.form['id']
     objid = request.form['objid']
     recomment = request.form['recomment']
@@ -107,88 +153,171 @@ def recomment_update():
                           })
     return jsonify({'msg': '댓글이 수정되었습니다!'})
 
-@app.route('/')
-def home():
-    token_receive = request.cookies.get('mytoken')
-    try:
-        payload = jwt.decode(token_receive, SECRET_KEY, algorithms=['HS256'])
-
-        return render_template('index.html')
-    except jwt.ExpiredSignatureError:
-        return redirect(url_for("login", msg="로그인 시간이 만료되었습니다."))
-    except jwt.exceptions.DecodeError:
-        return redirect(url_for("login", msg="로그인 정보가 존재하지 않습니다."))
-
-
-@app.route('/login')
+# 로그인
+@app.route("/signin", methods=["POST", "GET"])
 def login():
-    msg = request.args.get("msg")
-    return render_template('login.html', msg=msg)
+    if request.method == 'POST':
+        id = request.form['id']
+        pw = request.form['pw']
 
+        pw_hash = hashlib.sha256(pw.encode('utf-8')).hexdigest()
 
-@app.route('/user/<username>')
-def user(username):
-    # 각 사용자의 프로필과 글을 모아볼 수 있는 공간
-    token_receive = request.cookies.get('mytoken')
-    try:
-        payload = jwt.decode(token_receive, SECRET_KEY, algorithms=['HS256'])
-        status = (username == payload["id"])  # 내 프로필이면 True, 다른 사람 프로필 페이지면 False
+        result = db.member.find_one({'id': id, 'password': pw_hash})
 
-        user_info = db.userss.find_one({"username": username}, {"_id": False})
-        return render_template('user.html', user_info=user_info, status=status)
-    except (jwt.ExpiredSignatureError, jwt.exceptions.DecodeError):
-        return redirect(url_for("home"))
+        if result is not None:
+            payload = {
+                'id': result['id'],
+                'name': result['name'],
+                'exp': datetime.utcnow() + timedelta(hours=1)
+            }
 
+            token = jwt.encode(payload, SECRET_KEY, algorithm = 'HS256')
 
-@app.route('/sign_in', methods=['POST'])
-def sign_in():
-    # 로그인
-    username_receive = request.form['username_give']
-    password_receive = request.form['password_give']
-
-    pw_hash = hashlib.sha256(password_receive.encode('utf-8')).hexdigest()
-    result = db.userss.find_one({'username': username_receive, 'password': pw_hash})
-
-    if result is not None:
-        payload = {
-         'id': username_receive,
-         'exp': datetime.utcnow() + timedelta(seconds=60 * 60 * 24)  # 로그인 24시간 유지
-        }
-        token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
-
-        return jsonify({'result': 'success', 'token': token})
-    # 찾지 못하면
+            resp = make_response(redirect(url_for('home')) )
+            resp.set_cookie('token', token)
+            return resp
+        else:
+            return render_template('login_resist_form.html', msg='아이디 또는 비밀번호가 일치하지 않습니다.')
     else:
-        return jsonify({'result': 'fail', 'msg': '아이디/비밀번호가 일치하지 않습니다.'})
+        return render_template('login_resist_form.html')
 
+#로그아웃
+@app.route("/logout", methods=["GET"])
+def logout():
+    #쿠키 삭제
+    resp = make_response(redirect(url_for('home')))
+    resp.delete_cookie('token')
+    return resp
 
-
-@app.route('/sign_up/save', methods=['POST'])
+# 회원가입
+@app.route('/signup', methods=["POST"])
 def sign_up():
-    username_receive = request.form['username_give']
-    password_receive = request.form['password_give']
-    password_hash = hashlib.sha256(password_receive.encode('utf-8')).hexdigest()
-    email_receive = request.form['email_give']
-    name_receive = request.form['name_give']
-    doc = {
-        "username": username_receive,                               # 아이디
-        "password": password_hash,                                  # 비밀번호
-        "email": email_receive,
-        "name" : name_receive,
-        "profile_name": username_receive,                           # 프로필 이름 기본값은 아이디
-
+    id = request.form['id']
+    password = request.form['pw']
+    pw_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+    name = request.form['name']
+    doc={
+        'id':id,
+        'password':pw_hash,
+        'name':name
     }
-    db.userss.insert_one(doc)
-    return jsonify({'result': 'success'})
+    db.member.insert_one(doc)
+    return render_template('login_resist_form.html')
 
+# 중복 확인
+@app.route('/duplicheck', methods=["POST"])
+def duplication_check():
+    id = request.form['id']
+    if db.member.find_one({'ID':id}) is None:
+        return jsonify({'msg' : "사용 가능한 아이디입니다.", 'result' : 1})
+    else:
+        return jsonify({'msg' : "중복된 아이디가 존재합니다.", 'result' : 0})
 
+# 관리자페이지
+@app.route('/adminpage', methods=["GET"])
+def adminpage():
+    report_list = list(db.reports.find({}))
+    try:
+        token = request.cookies.get('token')
+        member = jwt.decode(token, SECRET_KEY, algorithms='HS256')
+        return render_template('adminpage.html', report_list=report_list, member=member)
+    except jwt.ExpiredSignatureError:
+        resp = make_response(redirect(url_for('home')))
+        resp.delete_cookie('token')
+        return resp
+    except jwt.exceptions.DecodeError:
+        resp = make_response(redirect(url_for('home')))
+        resp.delete_cookie('token')
 
-@app.route('/sign_up/check_dup', methods=['POST'])
-def check_dup():
-    username_receive = request.form['username_give']
-    exists = bool(db.userss.find_one({"username": username_receive}))
-    return jsonify({'result': 'success', 'exists': exists})
+    return render_template('adminpage.html', report_list=report_list, member=member)
 
+# 댓글 신고 등록
+@app.route('/report/comment', methods=["POST"])
+def reportcomment():
+    msg = ''
+    ojtid = request.form['ojtid']
+
+    if db.reports.find_one({'comment_id': ObjectId(ojtid)}) != None:
+        msg = '이미 신고되어 처리 대기 중인 댓글입니다.'
+    else:
+        comment = db.comment.find_one({'_id': ObjectId(ojtid)}, {'recomments': False})
+        doc={
+            'comment_id': comment['_id'],
+            'id': comment['id'],
+            'comment': comment['comment'],
+            'reg_date': comment['reg_date'],
+            'reg_time': comment['reg_time'],
+            'distinct': 0
+        }
+        db.reports.insert_one(doc)
+        msg = '댓글 신고가 완료되었습니다.'
+
+    return jsonify({'msg': msg})
+
+#답글 신고 등록
+@app.route('/report/recomment', methods=["POST"])
+def reportrecomment():
+    msg = ''
+    ojtid = request.form['ojtid']
+    target = request.form['target']
+    if db.reports.find_one({'recomment_id': ObjectId(ojtid)}) != None:
+        msg = '이미 신고되어 처리 대기 중인 답글입니다.'
+    else:
+        recomment = db.comment.find_one({}, {'recomments': { "$elemMatch": {"_id": ObjectId(ojtid)}}, 'name':1})
+        doc={
+            'recomment_id': recomment['recomments'][0]['_id'],
+            'id': recomment['recomments'][0]['id'],
+            'recomment': recomment['recomments'][0]['recomment'],
+            'reg_date': recomment['recomments'][0]['reg_date'],
+            'reg_time': recomment['recomments'][0]['reg_time'],
+            'target': recomment['recomments'][0]['target'],
+            'distinct': 1
+        }
+        db.reports.insert_one(doc)
+        msg = '답글 신고가 완료되었습니다.'
+
+    return jsonify({'msg': msg})
+
+#댓글 신고내용 삭제
+@app.route('/report/comment', methods=["DELETE"])
+def delete_report_comment():
+    msg = ''
+    ojtid = request.form['ojtid']
+    comment_id = request.form['comment_id']
+
+    if db.comment.find_one({'_id': ObjectId(comment_id)}) == None:
+        db.reports.delete_one({'_id': ObjectId(ojtid)})
+        msg = '이미 삭제된 댓글입니다.'
+    else:
+        db.comment.delete_one({"_id": ObjectId(comment_id)})
+        db.reports.delete_one({'_id': ObjectId(ojtid)})
+        msg = '댓글 삭제가 완료되었습니다.'
+    return jsonify({'msg': msg})
+
+#답글 신고내용 삭제
+@app.route('/report/recomment', methods=["DELETE"])
+def delete_report_recomment():
+    msg = ''
+    ojtid = request.form['ojtid']
+    recomment_id = request.form['recomment_id']
+    target = request.form['target']
+
+    if db.comment.find_one({'recomments._id': ObjectId(recomment_id)}) == None:
+        db.reports.delete_one({'_id': ObjectId(ojtid)})
+        msg = '이미 삭제된 답글입니다.'
+    else:
+        db.reports.delete_one({'_id': ObjectId(ojtid)})
+
+        db.comment.update_one({'_id': ObjectId(target)},
+                              {'$pull':
+                                  {'recomments':
+                                      {
+                                          "_id": ObjectId(recomment_id)
+                                      }
+                                  }
+                              })
+        msg = '답글 삭제가 완료되었습니다.'
+    return jsonify({'msg': msg})
 
 if __name__ == '__main__':
     app.run('0.0.0.0', port=5000, debug=True)

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content="" />
+        <meta name="author" content="" />
+        <title>당신의 후보는?</title>
+        <!-- Favicon-->
+        <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='assets/favicon.ico') }}" />
+        <!-- Bootstrap icons-->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
+        <!-- Core theme CSS (includes Bootstrap)-->
+        <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet"/>
+                <!-- Bootstrap core JS-->
+        <style>
+            #list{
+                width: 100%;
+            }
+
+            .id{
+                width: 7%;
+                border: 1px solid lightgray;
+                text-align: center;
+            }
+
+            .content{
+                border: 1px solid lightgray;
+                text-align: center;
+            }
+
+            .date{
+                width: 10%;
+                border: 1px solid lightgray;
+                text-align: center;
+            }
+
+            .delete{
+                width: 7%;
+                border: 1px solid lightgray;
+                text-align: center;
+            }
+        </style>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- Core theme JS-->
+        <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+        <script>
+            function deletecom(ojtid, comment_id){
+                if(confirm('댓글을 삭제하시겠습니까?')){
+                    $.ajax({
+                        type: "DELETE",
+                        url: "/report/comment",
+                        data: {
+                            ojtid: ojtid,
+                            comment_id: comment_id
+                        },
+                        success: function (response) {
+                            alert(response['msg'])
+                            location.reload()
+                        }
+                    })
+                }
+            }
+
+            function deleterecom(ojtid, recomment_id, target){
+                if(confirm('댓글을 삭제하시겠습니까?')){
+                    $.ajax({
+                        type: "DELETE",
+                        url: "/report/recomment",
+                        data: {
+                            ojtid: ojtid,
+                            recomment_id: recomment_id,
+                            target: target
+                        },
+                        success: function (response) {
+                            alert(response['msg'])
+                            location.reload()
+                        }
+                    })
+                }
+            }
+
+        </script>
+    </head>
+    <body>
+        <!-- Navigation-->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container px-4 px-lg-5">
+                <a class="navbar-brand" href="/">당신의 후보는?</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
+                        <li class="nav-item"><a class="nav-link active" aria-current="page" href="/">Home</a></li>
+                        {% if member == null %}
+                            <li class="nav-item"><a class="nav-link" href="/signin">SignIn</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/signin">SignUp</a></li>
+                        {% else %}
+                            {% if member['id'] == 'admin' %}
+                                <li class="nav-item"><a class="nav-link" href="/adminpage">AdminPage</a></li>
+                            {% endif %}
+                            <li class="nav-item"><a class="nav-link" href="/logout">LogOut</a></li>
+                        {% endif %}
+                    </ul>
+                    {% if member != null %}
+                        <span>{{member['name']}}님</span>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+        <!-- Header-->
+        <header class="bg-dark py-5">
+            <div class="container px-4 px-lg-5 my-5">
+                <div class="text-center text-white">
+                    <h1 class="display-4 fw-bolder">당신의 후보는?</h1>
+                    <p class="lead fw-normal text-white-50 mb-0">항해99 6기 B반 11조 프로젝트</p>
+                </div>
+            </div>
+        </header>
+        <!-- Section-->
+        <section class="py-5">
+            <div class="container">
+                <table id="list">
+                    <tr>
+                        <td class="id">id</td><td class="content">댓글 내용</td><td class="date">작성 일시</td><td class="delete">삭제</td>
+                    </tr>
+                    {% for report in report_list %}
+                        {% if report['comment'] != null %}
+                            <tr>
+                                <td class="id">{{ report['id'] }}</td>
+                                <td class="content">{{ report['comment'] }}</td>
+                                <td class="date">{{ report['reg_date'] }}<br>{{ report['reg_time'] }}</td>
+                                <td class="delete"><a class="btn btn-secondary" onclick=deletecom("{{ report['_id'] }}","{{ report['comment_id'] }}")>삭제</a></td>
+                            </tr>
+                        {% elif report['recomment'] != null %}
+                            <tr>
+                                <td class="id">{{ report['id'] }}</td>
+                                <td class="content">{{ report['recomment'] }}</td>
+                                <td class="date">{{ report['reg_date'] }}<br>{{ report['reg_time'] }}</td>
+                                <td class="delete"><a class="btn btn-secondary" onclick=deleterecom("{{ report['_id'] }}","{{ report['recomment_id'] }}","{{ report['target'] }}")>삭제</a></td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                </table>
+            </div>
+        </section>
+        <!-- Footer-->
+        <footer class="py-5 bg-dark">
+            <div class="container"><p class="m-0 text-center text-white">Copyright &copy; Your Website 2022</p></div>
+        </footer>
+    </body>
+</html>

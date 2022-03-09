@@ -65,26 +65,34 @@
         <script src="{{ url_for('static', filename='js/detail_styles.js') }}"></script>
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script>
+            let member;
+            {% if member != null %}
+                member = JSON.parse('{{ member|tojson }}');
+            {% endif %}
             // 댓글 등록 function
             function comwrite(){
-                let comment = $('#comment').val().replace(/\n/g, "<br>")
-                if(comment.length==0){
-                    alert("댓글을 입력해주세요.")
-                }else{
-                    $.ajax({
-                        type: "POST",
-                        url: "/comment/insert",
-                        data: {
-                            id: 'id',
-                            comment: comment
-                        },
-                        success: function (response) {
-                            let msg = response['msg']
+                if(member == undefined){
+                    alert('로그인이 필요한 서비스입니다.')
+                }else {
+                    let comment = $('#comment').val().replace(/\n/g, "<br>")
+                    if (comment.length == 0) {
+                        alert("댓글을 입력해주세요.")
+                    } else {
+                        $.ajax({
+                            type: "POST",
+                            url: "/comment/insert",
+                            data: {
+                                id: '{{ member['id'] }}',
+                                comment: comment
+                            },
+                            success: function (response) {
+                                let msg = response['msg']
 
-                            alert(msg)
-                            location.reload()
-                        }
-                    })
+                                alert(msg)
+                                location.reload()
+                            }
+                        })
+                    }
                 }
             }
 
@@ -119,7 +127,6 @@
                                     </td>
                                 </tr>`
                 $('#'+objid).parent().parent().after(temp_html)
-
             }
 
             // 댓글 수정 function
@@ -132,7 +139,6 @@
                         type: "PUT",
                         url: "/comment/update",
                         data: {
-                            id: 'id',
                             objid: objid,
                             comment: updatecomment
                         },
@@ -152,16 +158,20 @@
 
             // 답글 form function
             function recomform(objid){
-                cancelupdate()
-                let temp_html = `<tr id="recomform">
-                                    <td></td>
-                                    <td colspan="2">
-                                        <textarea rows="3" cols="120" id="recomment" placeholder="답글을 입력하세요."></textarea>
-                                        <a class="btn btn-secondary float-end updatebtns" onclick=cancelupdate()>취소</a>
-                                        <a class="btn btn-secondary float-end updatebtns" onclick=recomwrite("${objid}")>작성<br>완료</a>
-                                    </td>
-                                </tr>`
-                $('#' + objid).parent().parent().after(temp_html)
+                if(member == undefined){
+                    alert('로그인이 필요한 서비스입니다.')
+                }else{
+                    cancelupdate()
+                    let temp_html = `<tr id="recomform">
+                                        <td></td>
+                                        <td colspan="2">
+                                            <textarea rows="3" cols="120" id="recomment" placeholder="답글을 입력하세요."></textarea>
+                                            <a class="btn btn-secondary float-end updatebtns" onclick=cancelupdate()>취소</a>
+                                            <a class="btn btn-secondary float-end updatebtns" onclick=recomwrite("${objid}")>작성<br>완료</a>
+                                        </td>
+                                    </tr>`
+                    $('#' + objid).parent().parent().after(temp_html)
+                }
             }
 
             // 답글 등록 function
@@ -174,7 +184,7 @@
                         type: "POST",
                         url: "/recomment/insert",
                         data: {
-                            id: 'id',
+                            id: '{{ member['id'] }}',
                             objid: objid,
                             recomment: recomment
                         },
@@ -218,7 +228,6 @@
                                     </td>
                                 </tr>`
                 $('#'+objid).parent().parent().after(temp_html)
-
             }
 
             // 답글 수정 function
@@ -231,7 +240,6 @@
                         type: "PUT",
                         url: "/recomment/update",
                         data: {
-                            id: 'id',
                             objid: objid,
                             target: target,
                             comment: updatecomment
@@ -239,6 +247,37 @@
                         success: function (response) {
                             alert(response['msg'])
                             location.reload()
+                        }
+                    })
+                }
+            }
+
+            function reportcom(ojtid){
+                if(confirm('신고하시겠습니까?')){
+                    $.ajax({
+                        type: "POST",
+                        url: "/report/comment",
+                        data: {
+                            ojtid: ojtid,
+                        },
+                        success: function (response) {
+                            alert(response['msg'])
+                        }
+                    })
+                }
+            }
+
+            function reportrecom(ojtid,target){
+                if(confirm('신고하시겠습니까?')) {
+                    $.ajax({
+                        type: "POST",
+                        url: "/report/recomment",
+                        data: {
+                            ojtid: ojtid,
+                            target: target
+                        },
+                        success: function (response) {
+                            alert(response['msg'])
                         }
                     })
                 }
@@ -256,18 +295,19 @@
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
                         <li class="nav-item"><a class="nav-link active" aria-current="page" href="/">Home</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#!">About</a></li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Shop</a>
-                            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                                <li><a class="dropdown-item" href="#!">All Products</a></li>
-                                <li><hr class="dropdown-divider" /></li>
-                                <li><a class="dropdown-item" href="#!">Popular Items</a></li>
-                                <li><a class="dropdown-item" href="#!">New Arrivals</a></li>
-                            </ul>
-                        </li>
+                        {% if member == null %}
+                            <li class="nav-item"><a class="nav-link" href="/signin">SignIn</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/signin">SignUp</a></li>
+                        {% else %}
+                            {% if member['id'] == 'admin' %}
+                                <li class="nav-item"><a class="nav-link" href="/adminpage">AdminPage</a></li>
+                            {% endif %}
+                            <li class="nav-item"><a class="nav-link" href="/logout">LogOut</a></li>
+                        {% endif %}
                     </ul>
-
+                    {% if member != null %}
+                        <span>{{member['name']}}님</span>
+                    {% endif %}
                 </div>
             </div>
         </nav>
@@ -275,15 +315,29 @@
         <section class="py-5">
             <div class="container px-4 px-lg-5 my-5">
                 <div class="row gx-4 gx-lg-5 align-items-center">
-                    <div class="col-md-6"><img class="card-img-top mb-5 mb-md-0" src="https://dummyimage.com/600x700/dee2e6/6c757d.jpg" alt="..." /></div>
+                    <div class="col-md-6"><img class="card-img-top mb-5 mb-md-0" src="/static/img/{{ promise['krName'] }}.png" alt="..." /></div>
                     <div class="col-md-6">
-                        <div class="small mb-1">당당당</div>
-                        <h1 class="display-5 fw-bolder">이재명</h1>
-                        <div class="fs-5 mb-5">
-                            <span>$40.00</span>
-                        </div>
+                        <div class="small mb-1">{{ promise['partyName'] }}</div>
+                        <h1 class="display-5 fw-bolder">{{ promise['krName'] }}</h1>
                         <p class="lead">공약</p>
-
+                        <div class="accordion" id="promiselist">
+                            {% for cnt in prmscnt %}
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#prms{{ cnt }}" aria-expanded="false" aria-controls="collapseOne">
+                                            {{ promise['prmsTitle'+cnt] }}
+                                        </button>
+                                    </h2>
+                                    <div id="prms{{ cnt }}" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#promiselist">
+                                        <div class="accordion-body">
+                                            {% autoescape false %}
+                                                {{ promise['prmmCont'+cnt] | replace("\n", "<br/>") }}
+                                            {% endautoescape %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -303,9 +357,11 @@
                         <td class="title mp"><strong>{{ comment['id']}}</strong></td>
                         <td class="comment mp"><div id="{{comment['_id']}}">{{ comment['comment']|safe}}</div></td>
                         <td class="btns">
-                            <a class="btn btn-secondary float-end">🚨신고</a>
-                            <a class="btn btn-secondary float-end" onclick=comdelete("{{ comment['_id']}}")>삭제</a>
-                            <a class="btn btn-secondary float-end" onclick=updateform("{{ comment['_id']}}")>수정</a>
+                            <a class="btn btn-secondary float-end" onclick=reportcom("{{ comment['_id']}}")>🚨신고</a>
+                            {% if comment['id'] == member['id'] %}
+                                <a class="btn btn-secondary float-end" onclick=comdelete("{{ comment['_id']}}")>삭제</a>
+                                <a class="btn btn-secondary float-end" onclick=updateform("{{ comment['_id']}}")>수정</a>
+                            {% endif %}
                         </td>
                         <td class="comment-btn mp"><a class="btn btn-secondary" onclick=recomform("{{ comment['_id']}}")>답글<br>작성</a></td>
                     </tr>
@@ -315,9 +371,11 @@
                                 <td class="title mp"><strong>{{ recomment['id']}}</strong></td>
                                 <td class="comment mp"><strong>RE:▶</strong><div id="{{recomment['_id']}}">{{ recomment['recomment']|safe}}</div></td>
                                 <td class="btns">
-                                    <a class="btn btn-secondary float-end">🚨신고</a>
-                                    <a class="btn btn-secondary float-end" onclick=recomdelete("{{ recomment['_id']}}","{{recomment['target']}}")>삭제</a>
-                                    <a class="btn btn-secondary float-end" onclick=recomupdateform("{{ recomment['_id']}}","{{recomment['target']}}")>수정</a>
+                                    <a class="btn btn-secondary float-end" onclick=reportrecom("{{ recomment['_id']}}","{{recomment['target']}}")>🚨신고</a>
+                                    {% if recomment['id'] == member['id'] %}
+                                        <a class="btn btn-secondary float-end" onclick=recomdelete("{{ recomment['_id']}}","{{recomment['target']}}")>삭제</a>
+                                        <a class="btn btn-secondary float-end" onclick=recomupdateform("{{ recomment['_id']}}","{{recomment['target']}}")>수정</a>
+                                    {% endif %}
                                 </td>
                                 <td class="comment-btn mp"></td>
                             </tr>
@@ -328,7 +386,7 @@
         </section>
         <!-- Footer-->
         <footer class="py-5 bg-dark">
-            <div class="container"><p class="m-0 text-center text-white">Copyright &copy; Your Website 2021</p></div>
+            <div class="container"><p class="m-0 text-center text-white">당신의 후보는?</p></div>
         </footer>
     </body>
 </html>
