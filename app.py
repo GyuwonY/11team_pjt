@@ -8,7 +8,7 @@ import requests
 import xmltodict, json
 
 SECRET_KEY = 'SPARTA'
-client = MongoClient('mongodb+srv://test01:test01@cluster0.sk1w9.mongodb.net/Cluster0?retryWrites=true&w=majority',tlsCAFile=certifi.where())
+client = MongoClient(--------)
 db = client.dbpjt
 
 SECRET_KEY = 'SPARTA'
