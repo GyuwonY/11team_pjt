@@ -70,7 +70,7 @@
                 member = JSON.parse('{{ member|tojson }}');
             {% endif %}
             // 댓글 등록 function
-            function comwrite(){
+            function comwrite(target){
                 if(member == undefined){
                     alert('로그인이 필요한 서비스입니다.')
                 }else {
@@ -83,7 +83,8 @@
                             url: "/comment/insert",
                             data: {
                                 id: '{{ member['id'] }}',
-                                comment: comment
+                                comment: comment,
+                                target: target
                             },
                             success: function (response) {
                                 let msg = response['msg']
@@ -348,7 +349,7 @@
                 <tr class="mp">
                     <td class="title mp"><strong>댓글</strong></td>
                     <td class="comment mp"><textarea rows="3" cols="90" id="comment" placeholder="댓글을 입력하세요."></textarea></td>
-                    <td class="comment-btn mp"><a class="btn btn-secondary" onclick="comwrite()">댓글<br>작성</a></td>
+                    <td class="comment-btn mp"><a class="btn btn-secondary" onclick=comwrite("{{ promise['krName'] }}")>댓글<br>작성</a></td>
                 </tr>
             </table>
             <table class="comment-list mp">

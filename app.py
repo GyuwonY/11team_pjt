@@ -7,8 +7,8 @@ import hashlib
 import requests
 import xmltodict, json
 
-app = Flask(__name__)
-client = MongoClient('mongodb+srv://test:ksd3480@cluster0.sk1w9.mongodb.net/myFirstDatabase?retryWrites=true&w=majority')
+SECRET_KEY = 'SPARTA'
+client = MongoClient('mongodb+srv://test01:test01@cluster0.sk1w9.mongodb.net/Cluster0?retryWrites=true&w=majority',tlsCAFile=certifi.where())
 db = client.dbpjt
 
 SECRET_KEY = 'SPARTA'
@@ -32,7 +32,6 @@ def home():
             resp.delete_cookie('token')
             return resp
     return render_template('index.html', candidates=candidates)
-
 
 # 후보 상세정보 보기
 @app.route("/detail", methods=["GET"])
@@ -77,10 +76,11 @@ def comment_insert():
     now = datetime.now()
     id = request.form['id']
     comment = request.form['comment']
+    target = request.form['target']
     doc = {
         'id': id,
         'comment': comment,
-        'target': '이재명',
+        'target': target,
         'reg_date': now.strftime('%Y-%m-%d'),
         'reg_time': now.strftime('%H:%M:%S'),
     }
