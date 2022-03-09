@@ -78,11 +78,12 @@
                     if (comment.length == 0) {
                         alert("댓글을 입력해주세요.")
                     } else {
+                        let id = member['id']
                         $.ajax({
                             type: "POST",
                             url: "/comment/insert",
                             data: {
-                                id: '{{ member['id'] }}',
+                                id: id,
                                 comment: comment,
                                 target: target
                             },
@@ -181,11 +182,12 @@
                 if($('#recomment').length==0){
                     alert("답글을 입력해주세요.")
                 }else {
+                    let id = member['id']
                     $.ajax({
                         type: "POST",
                         url: "/recomment/insert",
                         data: {
-                            id: '{{ member['id'] }}',
+                            id: id,
                             objid: objid,
                             recomment: recomment
                         },
@@ -359,7 +361,7 @@
                         <td class="comment mp"><div id="{{comment['_id']}}">{{ comment['comment']|safe}}</div></td>
                         <td class="btns">
                             <a class="btn btn-secondary float-end" onclick=reportcom("{{ comment['_id']}}")>🚨신고</a>
-                            {% if comment['id'] == member['id'] %}
+                            {% if (member != null) and (comment['id'] == member['id']) %}
                                 <a class="btn btn-secondary float-end" onclick=comdelete("{{ comment['_id']}}")>삭제</a>
                                 <a class="btn btn-secondary float-end" onclick=updateform("{{ comment['_id']}}")>수정</a>
                             {% endif %}
@@ -373,7 +375,7 @@
                                 <td class="comment mp"><strong>RE:▶</strong><div id="{{recomment['_id']}}">{{ recomment['recomment']|safe}}</div></td>
                                 <td class="btns">
                                     <a class="btn btn-secondary float-end" onclick=reportrecom("{{ recomment['_id']}}","{{recomment['target']}}")>🚨신고</a>
-                                    {% if recomment['id'] == member['id'] %}
+                                    {% if (member != null) and (recomment['id'] == member['id']) %}
                                         <a class="btn btn-secondary float-end" onclick=recomdelete("{{ recomment['_id']}}","{{recomment['target']}}")>삭제</a>
                                         <a class="btn btn-secondary float-end" onclick=recomupdateform("{{ recomment['_id']}}","{{recomment['target']}}")>수정</a>
                                     {% endif %}

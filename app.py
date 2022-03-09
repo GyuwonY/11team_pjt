@@ -7,8 +7,8 @@ import hashlib
 import requests
 import xmltodict, json
 
-SECRET_KEY = 'SPARTA'
-client = MongoClient('mongodb+srv://test01:test01@cluster0.sk1w9.mongodb.net/Cluster0?retryWrites=true&w=majority',tlsCAFile=certifi.where())
+app = Flask(__name__)
+client = MongoClient('mongodb+srv://test:ksd3480@cluster0.sk1w9.mongodb.net/Cluster0?retryWrites=true&w=majority')
 db = client.dbpjt
 
 SECRET_KEY = 'SPARTA'
@@ -263,7 +263,7 @@ def reportrecomment():
     if db.reports.find_one({'recomment_id': ObjectId(ojtid)}) != None:
         msg = '이미 신고되어 처리 대기 중인 답글입니다.'
     else:
-        recomment = db.comment.find_one({}, {'recomments': { "$elemMatch": {"_id": ObjectId(ojtid)}}, 'name':1})
+        recomment = db.comment.find_one({'_id':ObjectId(target)}, {'recomments': { "$elemMatch": {"_id": ObjectId(ojtid)}}, 'name':1})
         doc={
             'recomment_id': recomment['recomments'][0]['_id'],
             'id': recomment['recomments'][0]['id'],
@@ -307,7 +307,6 @@ def delete_report_recomment():
         msg = '이미 삭제된 답글입니다.'
     else:
         db.reports.delete_one({'_id': ObjectId(ojtid)})
-
         db.comment.update_one({'_id': ObjectId(target)},
                               {'$pull':
                                   {'recomments':
