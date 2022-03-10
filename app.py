@@ -8,7 +8,7 @@ import requests
 import xmltodict, json
 
 app = Flask(__name__)
-client = MongoClient('mongodb+srv://test:ksd3480@cluster0.sk1w9.mongodb.net/myFirstDatabase?retryWrites=true&w=majority')
+client = MongoClient('----------------------------------')
 db = client.dbpjt
 
 SECRET_KEY = 'SPARTA'
