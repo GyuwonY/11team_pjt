@@ -8,7 +8,7 @@ import requests
 import xmltodict, json
 
 app = Flask(__name__)
-client = MongoClient('--------')
+client = MongoClient('mongodb+srv://test:ksd3480@cluster0.sk1w9.mongodb.net/myFirstDatabase?retryWrites=true&w=majority')
 db = client.dbpjt
 
 SECRET_KEY = 'SPARTA'
@@ -204,11 +204,11 @@ def sign_up():
     db.member.insert_one(doc)
     return render_template('login_resist_form.html')
 
-# 중복 확인
+# ID 중복 확인
 @app.route('/duplicheck', methods=["POST"])
 def duplication_check():
     id = request.form['id']
-    if db.member.find_one({'ID':id}) is None:
+    if db.member.find_one({'id':id}) is None:
         return jsonify({'msg' : "사용 가능한 아이디입니다.", 'result' : 1})
     else:
         return jsonify({'msg' : "중복된 아이디가 존재합니다.", 'result' : 0})
